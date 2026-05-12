@@ -538,3 +538,890 @@ function renderHobbies() {
 
     container.innerHTML = html;
 }
+// ============================================================================
+// Modal Functions
+// ============================================================================
+
+function openModal(title, content) {
+    const overlay = document.getElementById('modal-overlay');
+    const container = document.getElementById('modal-container');
+
+    container.innerHTML = `
+        <div class="modal-header">
+            <h3 class="modal-title">${title}</h3>
+        </div>
+        <div class="modal-body">
+            ${content}
+        </div>
+    `;
+
+    overlay.classList.add('active');
+    container.classList.add('active');
+}
+
+function closeModal() {
+    const overlay = document.getElementById('modal-overlay');
+    const container = document.getElementById('modal-container');
+
+    overlay.classList.remove('active');
+    container.classList.remove('active');
+}
+
+// ============================================================================
+// Sphere Modal Functions
+// ============================================================================
+
+function openSphereModal(sphereId = null) {
+    const sphere = sphereId ? state.spheres.find(s => s.id === sphereId) : null;
+    const isEdit = !!sphere;
+
+    const content = `
+        <form id="sphere-form" onsubmit="saveSphere(event, '${sphereId || ''}')">
+            <div class="form-group">
+                <label class="form-label">Nome *</label>
+                <input type="text" class="form-input" name="name" value="${sphere ? escapeHtml(sphere.name) : ''}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Descrizione</label>
+                <textarea class="form-textarea" name="description">${sphere ? escapeHtml(sphere.description) : ''}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Colore</label>
+                <input type="color" class="form-input" name="color" value="${sphere ? sphere.color : '#6366f1'}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Icona</label>
+                <input type="text" class="form-input" name="icon" value="${sphere ? sphere.icon : '●'}" maxlength="2">
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+                <button type="submit" class="btn btn-primary">${isEdit ? 'Aggiorna' : 'Crea'}</button>
+            </div>
+        </form>
+    `;
+
+    openModal(isEdit ? 'Modifica Sfera' : 'Nuova Sfera', content);
+}
+
+async function saveSphere(event, sphereId) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const data = {
+        name: formData.get('name'),
+        description: formData.get('description'),
+        color: formData.get('color'),
+        icon: formData.get('icon')
+    };
+
+    try {
+        if (sphereId) {
+            await apiRequest(`/spheres/${sphereId}`, 'PUT', data);
+            showToast('Sfera aggiornata con successo', 'success');
+        } else {
+            await apiRequest('/spheres', 'POST', data);
+            showToast('Sfera creata con successo', 'success');
+        }
+
+        await loadAllData();
+        closeModal();
+    } catch (error) {
+        console.error('Error saving sphere:', error);
+    }
+}
+
+function editSphere(sphereId) {
+    openSphereModal(sphereId);
+}
+
+async function deleteSphere(sphereId) {
+    if (!confirm('Sei sicuro di voler eliminare questa sfera?')) return;
+
+    try {
+        await apiRequest(`/spheres/${sphereId}`, 'DELETE');
+        showToast('Sfera eliminata con successo', 'success');
+        await loadAllData();
+    } catch (error) {
+        console.error('Error deleting sphere:', error);
+    }
+}
+
+// ============================================================================
+// Task Modal Functions
+// ============================================================================
+
+function openTaskModal(taskId = null) {
+    const task = taskId ? state.tasks.find(t => t.id === taskId) : null;
+    const isEdit = !!task;
+
+    const sphereOptions = state.spheres.map(s => 
+        `<option value="${s.id}" ${task && task.sphere_id === s.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`
+    ).join('');
+
+    const content = `
+        <form id="task-form" onsubmit="saveTask(event, '${taskId || ''}')">
+            <div class="form-group">
+                <label class="form-label">Titolo *</label>
+                <input type="text" class="form-input" name="title" value="${task ? escapeHtml(task.title) : ''}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Descrizione</label>
+                <textarea class="form-textarea" name="description">${task ? escapeHtml(task.description) : ''}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Priorità</label>
+                <select class="form-select" name="priority">
+                    <option value="low" ${task && task.priority === 'low' ? 'selected' : ''}>Bassa</option>
+                    <option value="medium" ${task && task.priority === 'medium' ? 'selected' : ''}>Media</option>
+                    <option value="high" ${task && task.priority === 'high' ? 'selected' : ''}>Alta</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Stato</label>
+                <select class="form-select" name="status">
+                    <option value="todo" ${task && task.status === 'todo' ? 'selected' : ''}>Da Fare</option>
+                    <option value="in_progress" ${task && task.status === 'in_progress' ? 'selected' : ''}>In Corso</option>
+                    <option value="done" ${task && task.status === 'done' ? 'selected' : ''}>Completato</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Data Scadenza</label>
+                <input type="date" class="form-input" name="due_date" value="${task && task.due_date ? task.due_date : ''}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Sfera</label>
+                <select class="form-select" name="sphere_id">
+                    <option value="">Nessuna</option>
+                    ${sphereOptions}
+                </select>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+                <button type="submit" class="btn btn-primary">${isEdit ? 'Aggiorna' : 'Crea'}</button>
+            </div>
+        </form>
+    `;
+
+    openModal(isEdit ? 'Modifica Task' : 'Nuovo Task', content);
+}
+
+async function saveTask(event, taskId) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const data = {
+        title: formData.get('title'),
+        description: formData.get('description'),
+        priority: formData.get('priority'),
+        status: formData.get('status'),
+        due_date: formData.get('due_date'),
+        sphere_id: formData.get('sphere_id')
+    };
+
+    try {
+        if (taskId) {
+            await apiRequest(`/tasks/${taskId}`, 'PUT', data);
+            showToast('Task aggiornato con successo', 'success');
+        } else {
+            await apiRequest('/tasks', 'POST', data);
+            showToast('Task creato con successo', 'success');
+        }
+
+        await loadAllData();
+        closeModal();
+    } catch (error) {
+        console.error('Error saving task:', error);
+    }
+}
+
+function editTask(taskId) {
+    openTaskModal(taskId);
+}
+
+async function updateTaskStatus(taskId, status) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    try {
+        await apiRequest(`/tasks/${taskId}`, 'PUT', {
+            ...task,
+            status
+        });
+        showToast('Task aggiornato', 'success');
+        await loadAllData();
+    } catch (error) {
+        console.error('Error updating task:', error);
+    }
+}
+
+async function deleteTask(taskId) {
+    if (!confirm('Sei sicuro di voler eliminare questo task?')) return;
+
+    try {
+        await apiRequest(`/tasks/${taskId}`, 'DELETE');
+        showToast('Task eliminato con successo', 'success');
+        await loadAllData();
+    } catch (error) {
+        console.error('Error deleting task:', error);
+    }
+}
+
+// ============================================================================
+// Habit Modal Functions
+// ============================================================================
+
+function openHabitModal(habitId = null) {
+    const habit = habitId ? state.habits.find(h => h.id === habitId) : null;
+    const isEdit = !!habit;
+
+    const sphereOptions = state.spheres.map(s => 
+        `<option value="${s.id}" ${habit && habit.sphere_id === s.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`
+    ).join('');
+
+    const content = `
+        <form id="habit-form" onsubmit="saveHabit(event, '${habitId || ''}')">
+            <div class="form-group">
+                <label class="form-label">Nome *</label>
+                <input type="text" class="form-input" name="name" value="${habit ? escapeHtml(habit.name) : ''}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Descrizione</label>
+                <textarea class="form-textarea" name="description">${habit ? escapeHtml(habit.description) : ''}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Frequenza</label>
+                <select class="form-select" name="frequency">
+                    <option value="daily" ${habit && habit.frequency === 'daily' ? 'selected' : ''}>Giornaliera</option>
+                    <option value="weekly" ${habit && habit.frequency === 'weekly' ? 'selected' : ''}>Settimanale</option>
+                    <option value="monthly" ${habit && habit.frequency === 'monthly' ? 'selected' : ''}>Mensile</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Sfera</label>
+                <select class="form-select" name="sphere_id">
+                    <option value="">Nessuna</option>
+                    ${sphereOptions}
+                </select>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+                <button type="submit" class="btn btn-primary">${isEdit ? 'Aggiorna' : 'Crea'}</button>
+            </div>
+        </form>
+    `;
+
+    openModal(isEdit ? 'Modifica Abitudine' : 'Nuova Abitudine', content);
+}
+
+async function saveHabit(event, habitId) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const data = {
+        name: formData.get('name'),
+        description: formData.get('description'),
+        frequency: formData.get('frequency'),
+        sphere_id: formData.get('sphere_id')
+    };
+
+    try {
+        if (habitId) {
+            await apiRequest(`/habits/${habitId}`, 'PUT', data);
+            showToast('Abitudine aggiornata con successo', 'success');
+        } else {
+            await apiRequest('/habits', 'POST', data);
+            showToast('Abitudine creata con successo', 'success');
+        }
+
+        await loadAllData();
+        closeModal();
+    } catch (error) {
+        console.error('Error saving habit:', error);
+    }
+}
+
+function editHabit(habitId) {
+    openHabitModal(habitId);
+}
+
+async function completeHabit(habitId) {
+    try {
+        await apiRequest(`/habits/${habitId}/complete`, 'POST');
+        showToast('Abitudine completata! 🎉', 'success');
+        await loadAllData();
+    } catch (error) {
+        console.error('Error completing habit:', error);
+    }
+}
+
+async function deleteHabit(habitId) {
+    if (!confirm('Sei sicuro di voler eliminare questa abitudine?')) return;
+
+    try {
+        await apiRequest(`/habits/${habitId}`, 'DELETE');
+        showToast('Abitudine eliminata con successo', 'success');
+        await loadAllData();
+    } catch (error) {
+        console.error('Error deleting habit:', error);
+    }
+}
+
+// ============================================================================
+// Goal Modal Functions
+// ============================================================================
+
+function openGoalModal(goalId = null) {
+    const goal = goalId ? state.goals.find(g => g.id === goalId) : null;
+    const isEdit = !!goal;
+
+    const sphereOptions = state.spheres.map(s => 
+        `<option value="${s.id}" ${goal && goal.sphere_id === s.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`
+    ).join('');
+
+    const content = `
+        <form id="goal-form" onsubmit="saveGoal(event, '${goalId || ''}')">
+            <div class="form-group">
+                <label class="form-label">Nome *</label>
+                <input type="text" class="form-input" name="name" value="${goal ? escapeHtml(goal.name) : ''}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Descrizione</label>
+                <textarea class="form-textarea" name="description">${goal ? escapeHtml(goal.description) : ''}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Data Target *</label>
+                <input type="date" class="form-input" name="target_date" value="${goal && goal.target_date ? goal.target_date : ''}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Progresso (%)</label>
+                <input type="number" class="form-input" name="progress" min="0" max="100" value="${goal ? goal.progress : 0}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Stato</label>
+                <select class="form-select" name="status">
+                    <option value="active" ${goal && goal.status === 'active' ? 'selected' : ''}>Attivo</option>
+                    <option value="completed" ${goal && goal.status === 'completed' ? 'selected' : ''}>Completato</option>
+                    <option value="abandoned" ${goal && goal.status === 'abandoned' ? 'selected' : ''}>Abbandonato</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Sfera</label>
+                <select class="form-select" name="sphere_id">
+                    <option value="">Nessuna</option>
+                    ${sphereOptions}
+                </select>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+                <button type="submit" class="btn btn-primary">${isEdit ? 'Aggiorna' : 'Crea'}</button>
+            </div>
+        </form>
+    `;
+
+    openModal(isEdit ? 'Modifica Obiettivo' : 'Nuovo Obiettivo', content);
+}
+
+async function saveGoal(event, goalId) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const data = {
+        name: formData.get('name'),
+        description: formData.get('description'),
+        target_date: formData.get('target_date'),
+        progress: parseInt(formData.get('progress')),
+        status: formData.get('status'),
+        sphere_id: formData.get('sphere_id')
+    };
+
+    try {
+        if (goalId) {
+            await apiRequest(`/goals/${goalId}`, 'PUT', data);
+            showToast('Obiettivo aggiornato con successo', 'success');
+        } else {
+            await apiRequest('/goals', 'POST', data);
+            showToast('Obiettivo creato con successo', 'success');
+        }
+
+        await loadAllData();
+        closeModal();
+    } catch (error) {
+        console.error('Error saving goal:', error);
+    }
+}
+
+function editGoal(goalId) {
+    openGoalModal(goalId);
+}
+
+async function deleteGoal(goalId) {
+    if (!confirm('Sei sicuro di voler eliminare questo obiettivo?')) return;
+
+    try {
+        await apiRequest(`/goals/${goalId}`, 'DELETE');
+        showToast('Obiettivo eliminato con successo', 'success');
+        await loadAllData();
+    } catch (error) {
+        console.error('Error deleting goal:', error);
+    }
+}
+
+// ============================================================================
+// Culture Modal Functions
+// ============================================================================
+
+function openCultureModal(itemId = null) {
+    const item = itemId ? state.culture.find(c => c.id === itemId) : null;
+    const isEdit = !!item;
+
+    const sphereOptions = state.spheres.map(s => 
+        `<option value="${s.id}" ${item && item.sphere_id === s.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`
+    ).join('');
+
+    const content = `
+        <form id="culture-form" onsubmit="saveCulture(event, '${itemId || ''}')">
+            <div class="form-group">
+                <label class="form-label">Titolo *</label>
+                <input type="text" class="form-input" name="title" value="${item ? escapeHtml(item.title) : ''}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Tipo *</label>
+                <select class="form-select" name="type">
+                    <option value="book" ${item && item.type === 'book' ? 'selected' : ''}>Libro</option>
+                    <option value="movie" ${item && item.type === 'movie' ? 'selected' : ''}>Film</option>
+                    <option value="article" ${item && item.type === 'article' ? 'selected' : ''}>Articolo</option>
+                    <option value="podcast" ${item && item.type === 'podcast' ? 'selected' : ''}>Podcast</option>
+                    <option value="documentary" ${item && item.type === 'documentary' ? 'selected' : ''}>Documentario</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Autore/Creatore</label>
+                <input type="text" class="form-input" name="author" value="${item ? escapeHtml(item.author) : ''}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Note</label>
+                <textarea class="form-textarea" name="notes">${item ? escapeHtml(item.notes) : ''}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Valutazione (0-5)</label>
+                <input type="number" class="form-input" name="rating" min="0" max="5" value="${item ? item.rating : 0}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Stato</label>
+                <select class="form-select" name="status">
+                    <option value="to_consume" ${item && item.status === 'to_consume' ? 'selected' : ''}>Da Consumare</option>
+                    <option value="consuming" ${item && item.status === 'consuming' ? 'selected' : ''}>In Corso</option>
+                    <option value="completed" ${item && item.status === 'completed' ? 'selected' : ''}>Completato</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Sfera</label>
+                <select class="form-select" name="sphere_id">
+                    <option value="">Nessuna</option>
+                    ${sphereOptions}
+                </select>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+                <button type="submit" class="btn btn-primary">${isEdit ? 'Aggiorna' : 'Crea'}</button>
+            </div>
+        </form>
+    `;
+
+    openModal(isEdit ? 'Modifica Contenuto' : 'Nuovo Contenuto Culturale', content);
+}
+
+async function saveCulture(event, itemId) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const data = {
+        title: formData.get('title'),
+        type: formData.get('type'),
+        author: formData.get('author'),
+        notes: formData.get('notes'),
+        rating: parseInt(formData.get('rating')),
+        status: formData.get('status'),
+        sphere_id: formData.get('sphere_id')
+    };
+
+    try {
+        if (itemId) {
+            await apiRequest(`/culture/${itemId}`, 'PUT', data);
+            showToast('Contenuto aggiornato con successo', 'success');
+        } else {
+            await apiRequest('/culture', 'POST', data);
+            showToast('Contenuto aggiunto con successo', 'success');
+        }
+
+        await loadAllData();
+        closeModal();
+    } catch (error) {
+        console.error('Error saving culture item:', error);
+    }
+}
+
+function editCulture(itemId) {
+    openCultureModal(itemId);
+}
+
+async function deleteCulture(itemId) {
+    if (!confirm('Sei sicuro di voler eliminare questo contenuto?')) return;
+
+    try {
+        await apiRequest(`/culture/${itemId}`, 'DELETE');
+        showToast('Contenuto eliminato con successo', 'success');
+        await loadAllData();
+    } catch (error) {
+        console.error('Error deleting culture item:', error);
+    }
+}
+
+// ============================================================================
+// Training Modal Functions
+// ============================================================================
+
+function openTrainingModal(itemId = null) {
+    const item = itemId ? state.training.find(t => t.id === itemId) : null;
+    const isEdit = !!item;
+
+    const sphereOptions = state.spheres.map(s => 
+        `<option value="${s.id}" ${item && item.sphere_id === s.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`
+    ).join('');
+
+    const content = `
+        <form id="training-form" onsubmit="saveTraining(event, '${itemId || ''}')">
+            <div class="form-group">
+                <label class="form-label">Titolo *</label>
+                <input type="text" class="form-input" name="title" value="${item ? escapeHtml(item.title) : ''}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Tipo *</label>
+                <select class="form-select" name="type">
+                    <option value="course" ${item && item.type === 'course' ? 'selected' : ''}>Corso</option>
+                    <option value="certification" ${item && item.type === 'certification' ? 'selected' : ''}>Certificazione</option>
+                    <option value="workshop" ${item && item.type === 'workshop' ? 'selected' : ''}>Workshop</option>
+                    <option value="bootcamp" ${item && item.type === 'bootcamp' ? 'selected' : ''}>Bootcamp</option>
+                    <option value="seminar" ${item && item.type === 'seminar' ? 'selected' : ''}>Seminario</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Provider/Organizzatore</label>
+                <input type="text" class="form-input" name="provider" value="${item ? escapeHtml(item.provider) : ''}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Descrizione</label>
+                <textarea class="form-textarea" name="description">${item ? escapeHtml(item.description) : ''}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Progresso (%)</label>
+                <input type="number" class="form-input" name="progress" min="0" max="100" value="${item ? item.progress : 0}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Stato</label>
+                <select class="form-select" name="status">
+                    <option value="planned" ${item && item.status === 'planned' ? 'selected' : ''}>Pianificato</option>
+                    <option value="in_progress" ${item && item.status === 'in_progress' ? 'selected' : ''}>In Corso</option>
+                    <option value="completed" ${item && item.status === 'completed' ? 'selected' : ''}>Completato</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Data Inizio</label>
+                <input type="date" class="form-input" name="start_date" value="${item && item.start_date ? item.start_date : ''}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Data Fine</label>
+                <input type="date" class="form-input" name="end_date" value="${item && item.end_date ? item.end_date : ''}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Sfera</label>
+                <select class="form-select" name="sphere_id">
+                    <option value="">Nessuna</option>
+                    ${sphereOptions}
+                </select>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+                <button type="submit" class="btn btn-primary">${isEdit ? 'Aggiorna' : 'Crea'}</button>
+            </div>
+        </form>
+    `;
+
+    openModal(isEdit ? 'Modifica Formazione' : 'Nuova Formazione', content);
+}
+
+async function saveTraining(event, itemId) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const data = {
+        title: formData.get('title'),
+        type: formData.get('type'),
+        provider: formData.get('provider'),
+        description: formData.get('description'),
+        progress: parseInt(formData.get('progress')),
+        status: formData.get('status'),
+        start_date: formData.get('start_date'),
+        end_date: formData.get('end_date'),
+        sphere_id: formData.get('sphere_id')
+    };
+
+    try {
+        if (itemId) {
+            await apiRequest(`/training/${itemId}`, 'PUT', data);
+            showToast('Formazione aggiornata con successo', 'success');
+        } else {
+            await apiRequest('/training', 'POST', data);
+            showToast('Formazione aggiunta con successo', 'success');
+        }
+
+        await loadAllData();
+        closeModal();
+    } catch (error) {
+        console.error('Error saving training item:', error);
+    }
+}
+
+function editTraining(itemId) {
+    openTrainingModal(itemId);
+}
+
+async function deleteTraining(itemId) {
+    if (!confirm('Sei sicuro di voler eliminare questa formazione?')) return;
+
+    try {
+        await apiRequest(`/training/${itemId}`, 'DELETE');
+        showToast('Formazione eliminata con successo', 'success');
+        await loadAllData();
+    } catch (error) {
+        console.error('Error deleting training item:', error);
+    }
+}
+
+// ============================================================================
+// Hobby Modal Functions
+// ============================================================================
+
+function openHobbyModal(hobbyId = null) {
+    const hobby = hobbyId ? state.hobbies.find(h => h.id === hobbyId) : null;
+    const isEdit = !!hobby;
+
+    const sphereOptions = state.spheres.map(s => 
+        `<option value="${s.id}" ${hobby && hobby.sphere_id === s.id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`
+    ).join('');
+
+    const content = `
+        <form id="hobby-form" onsubmit="saveHobby(event, '${hobbyId || ''}')">
+            <div class="form-group">
+                <label class="form-label">Nome *</label>
+                <input type="text" class="form-input" name="name" value="${hobby ? escapeHtml(hobby.name) : ''}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Descrizione</label>
+                <textarea class="form-textarea" name="description">${hobby ? escapeHtml(hobby.description) : ''}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Sfera</label>
+                <select class="form-select" name="sphere_id">
+                    <option value="">Nessuna</option>
+                    ${sphereOptions}
+                </select>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+                <button type="submit" class="btn btn-primary">${isEdit ? 'Aggiorna' : 'Crea'}</button>
+            </div>
+        </form>
+    `;
+
+    openModal(isEdit ? 'Modifica Hobby' : 'Nuovo Hobby', content);
+}
+
+async function saveHobby(event, hobbyId) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const data = {
+        name: formData.get('name'),
+        description: formData.get('description'),
+        sphere_id: formData.get('sphere_id')
+    };
+
+    try {
+        if (hobbyId) {
+            await apiRequest(`/hobbies/${hobbyId}`, 'PUT', data);
+            showToast('Hobby aggiornato con successo', 'success');
+        } else {
+            await apiRequest('/hobbies', 'POST', data);
+            showToast('Hobby creato con successo', 'success');
+        }
+
+        await loadAllData();
+        closeModal();
+    } catch (error) {
+        console.error('Error saving hobby:', error);
+    }
+}
+
+function editHobby(hobbyId) {
+    openHobbyModal(hobbyId);
+}
+
+function addHobbySession(hobbyId) {
+    const content = `
+        <form id="session-form" onsubmit="saveHobbySession(event, '${hobbyId}')">
+            <div class="form-group">
+                <label class="form-label">Durata (minuti) *</label>
+                <input type="number" class="form-input" name="duration" min="1" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Note</label>
+                <textarea class="form-textarea" name="notes"></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+                <button type="submit" class="btn btn-primary">Aggiungi</button>
+            </div>
+        </form>
+    `;
+
+    openModal('Aggiungi Sessione', content);
+}
+
+async function saveHobbySession(event, hobbyId) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const data = {
+        duration: parseInt(formData.get('duration')),
+        notes: formData.get('notes')
+    };
+
+    try {
+        await apiRequest(`/hobbies/${hobbyId}/session`, 'POST', data);
+        showToast('Sessione aggiunta con successo', 'success');
+        await loadAllData();
+        closeModal();
+    } catch (error) {
+        console.error('Error saving hobby session:', error);
+    }
+}
+
+async function deleteHobby(hobbyId) {
+    if (!confirm('Sei sicuro di voler eliminare questo hobby?')) return;
+
+    try {
+        await apiRequest(`/hobbies/${hobbyId}`, 'DELETE');
+        showToast('Hobby eliminato con successo', 'success');
+        await loadAllData();
+    } catch (error) {
+        console.error('Error deleting hobby:', error);
+    }
+}
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('it-IT', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function getPriorityColor(priority) {
+    const colors = {
+        low: 'info',
+        medium: 'warning',
+        high: 'danger'
+    };
+    return colors[priority] || 'info';
+}
+
+function getStatusColor(status) {
+    const colors = {
+        todo: 'info',
+        in_progress: 'warning',
+        done: 'success',
+        active: 'primary',
+        completed: 'success',
+        abandoned: 'danger',
+        to_consume: 'info',
+        consuming: 'warning',
+        planned: 'info'
+    };
+    return colors[status] || 'info';
+}
+
+function getStatusLabel(status) {
+    const labels = {
+        todo: 'Da Fare',
+        in_progress: 'In Corso',
+        done: 'Completato',
+        active: 'Attivo',
+        completed: 'Completato',
+        abandoned: 'Abbandonato',
+        to_consume: 'Da Consumare',
+        consuming: 'In Corso',
+        planned: 'Pianificato'
+    };
+    return labels[status] || status;
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `toast ${type} active`;
+
+    setTimeout(() => {
+        toast.classList.remove('active');
+    }, 3000);
+}
+
