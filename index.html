@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life-OS | Personal Management System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h1 class="logo">Life-OS</h1>
+            <p class="tagline">Personal Management</p>
+        </div>
+
+        <ul class="nav-menu">
+            <li class="nav-item active" data-section="dashboard">
+                <span class="nav-icon">◆</span>
+                <span class="nav-text">Dashboard</span>
+            </li>
+            <li class="nav-item" data-section="spheres">
+                <span class="nav-icon">◉</span>
+                <span class="nav-text">Sfere</span>
+            </li>
+            <li class="nav-item" data-section="tasks">
+                <span class="nav-icon">☐</span>
+                <span class="nav-text">Task</span>
+            </li>
+            <li class="nav-item" data-section="habits">
+                <span class="nav-icon">◔</span>
+                <span class="nav-text">Abitudini</span>
+            </li>
+            <li class="nav-item" data-section="goals">
+                <span class="nav-icon">◈</span>
+                <span class="nav-text">Obiettivi</span>
+            </li>
+            <li class="nav-item" data-section="culture">
+                <span class="nav-icon">◐</span>
+                <span class="nav-text">Cultura</span>
+            </li>
+            <li class="nav-item" data-section="training">
+                <span class="nav-icon">◑</span>
+                <span class="nav-text">Formazione</span>
+            </li>
+            <li class="nav-item" data-section="hobbies">
+                <span class="nav-icon">◒</span>
+                <span class="nav-text">Hobby</span>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <p class="version">v1.0.0</p>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="content-section active">
+            <div class="section-header">
+                <h2 class="section-title">Dashboard</h2>
+                <p class="section-subtitle">Panoramica della tua vita</p>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">◉</div>
+                    <div class="stat-content">
+                        <h3 class="stat-value" id="stat-spheres">0</h3>
+                        <p class="stat-label">Sfere Attive</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">☐</div>
+                    <div class="stat-content">
+                        <h3 class="stat-value" id="stat-tasks">0</h3>
+                        <p class="stat-label">Task Aperti</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">◔</div>
+                    <div class="stat-content">
+                        <h3 class="stat-value" id="stat-habits">0</h3>
+                        <p class="stat-label">Abitudini</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">◈</div>
+                    <div class="stat-content">
+                        <h3 class="stat-value" id="stat-goals">0</h3>
+                        <p class="stat-label">Obiettivi Attivi</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-sections">
+                <div class="dashboard-column">
+                    <h3 class="column-title">Task Recenti</h3>
+                    <div id="recent-tasks" class="dashboard-list"></div>
+                </div>
+
+                <div class="dashboard-column">
+                    <h3 class="column-title">Abitudini Oggi</h3>
+                    <div id="today-habits" class="dashboard-list"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Spheres Section -->
+        <section id="spheres" class="content-section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Sfere di Interesse</h2>
+                    <p class="section-subtitle">Organizza le aree della tua vita</p>
+                </div>
+                <button class="btn btn-primary" onclick="openSphereModal()">
+                    <span>+</span> Nuova Sfera
+                </button>
+            </div>
+
+            <div id="spheres-grid" class="spheres-grid"></div>
+        </section>
+
+        <!-- Tasks Section -->
+        <section id="tasks" class="content-section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Task</h2>
+                    <p class="section-subtitle">Gestisci le tue attività</p>
+                </div>
+                <button class="btn btn-primary" onclick="openTaskModal()">
+                    <span>+</span> Nuovo Task
+                </button>
+            </div>
+
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all">Tutti</button>
+                <button class="filter-tab" data-filter="todo">Da Fare</button>
+                <button class="filter-tab" data-filter="in_progress">In Corso</button>
+                <button class="filter-tab" data-filter="done">Completati</button>
+            </div>
+
+            <div id="tasks-list" class="items-list"></div>
+        </section>
+
+        <!-- Habits Section -->
+        <section id="habits" class="content-section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Abitudini</h2>
+                    <p class="section-subtitle">Costruisci routine positive</p>
+                </div>
+                <button class="btn btn-primary" onclick="openHabitModal()">
+                    <span>+</span> Nuova Abitudine
+                </button>
+            </div>
+
+            <div id="habits-list" class="items-list"></div>
+        </section>
+
+        <!-- Goals Section -->
+        <section id="goals" class="content-section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Obiettivi</h2>
+                    <p class="section-subtitle">Definisci e raggiungi i tuoi traguardi</p>
+                </div>
+                <button class="btn btn-primary" onclick="openGoalModal()">
+                    <span>+</span> Nuovo Obiettivo
+                </button>
+            </div>
+
+            <div id="goals-list" class="items-list"></div>
+        </section>
+
+        <!-- Culture Section -->
+        <section id="culture" class="content-section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Cultura</h2>
+                    <p class="section-subtitle">Libri, film, articoli e podcast</p>
+                </div>
+                <button class="btn btn-primary" onclick="openCultureModal()">
+                    <span>+</span> Nuovo Contenuto
+                </button>
+            </div>
+
+            <div id="culture-list" class="items-list"></div>
+        </section>
+
+        <!-- Training Section -->
+        <section id="training" class="content-section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Formazione</h2>
+                    <p class="section-subtitle">Corsi, certificazioni e workshop</p>
+                </div>
+                <button class="btn btn-primary" onclick="openTrainingModal()">
+                    <span>+</span> Nuovo Corso
+                </button>
+            </div>
+
+            <div id="training-list" class="items-list"></div>
+        </section>
+
+        <!-- Hobbies Section -->
+        <section id="hobbies" class="content-section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">Hobby</h2>
+                    <p class="section-subtitle">Traccia il tempo dedicato alle tue passioni</p>
+                </div>
+                <button class="btn btn-primary" onclick="openHobbyModal()">
+                    <span>+</span> Nuovo Hobby
+                </button>
+            </div>
+
+            <div id="hobbies-list" class="items-list"></div>
+        </section>
+    </main>
+
+    <!-- Modal Container -->
+    <div id="modal-overlay" class="modal-overlay" onclick="closeModal()"></div>
+    <div id="modal-container" class="modal-container"></div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
